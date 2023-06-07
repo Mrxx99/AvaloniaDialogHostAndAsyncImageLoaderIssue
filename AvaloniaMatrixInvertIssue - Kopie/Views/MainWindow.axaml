@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AvaloniaMatrixInvertIssue.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        xmlns:materialDesign="clr-namespace:Material.Styles.Controls;assembly=Material.Styles"
+        xmlns:materialIcon="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:materialAssist="clr-namespace:Material.Styles.Assists;assembly=Material.Styles"
+        xmlns:dialogHost="clr-namespace:DialogHostAvalonia;assembly=DialogHost.Avalonia"
+        x:Class="AvaloniaMatrixInvertIssue.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="AvaloniaMatrixInvertIssue">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+  <dialogHost:DialogHost x:Name="DialogHost" CloseOnClickAway="True">
+    <dialogHost:DialogHost.DialogContent>
+      <!-- put your dialog content here-->
+    </dialogHost:DialogHost.DialogContent>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+      <materialDesign:Card Grid.Column="0" Margin="12,12,0,12" Height="44" Padding="8,0,8,0">
+        <TextBox
+           x:Name="QueryTextBox"
+           Margin="0,6,6,8"
+           VerticalAlignment="Bottom"
+           Watermark="URL or search query"
+           AcceptsReturn="True"
+           BorderThickness="0"
+           FontSize="16"
+           MaxLines="4"
+           KeyDown="QueryTextBox_OnPreviewKeyDown"
+           Theme="{StaticResource SoloTextBox}"
+           Text="{Binding Query}">
+          <TextBox.InnerLeftContent>
+            <!--  Search icon  -->
+            <materialIcon:MaterialIcon
+                Width="24"
+                Height="24"
+                Margin="8"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource PrimaryHueMidBrush}"
+                Kind="Search" />
+          </TextBox.InnerLeftContent>
+          <TextBox.InnerRightContent>
+            <!--  Process query button  -->
+            <Button
+                x:Name="ProcessQueryButton"
+                Margin="0,6,6,6"
+                Padding="4"
+                Command="{Binding ProcessQuery}"
+                IsDefault="True"
+                Theme="{StaticResource FlatButton}"
+                ToolTip.Tip="Process query (Enter)">
+              <materialIcon:MaterialIcon
+                  Width="24"
+                  Height="24"
+                  Kind="ArrowRight" />
+            </Button>
+          </TextBox.InnerRightContent>
+        </TextBox>
+      </materialDesign:Card>
+
+      <!--  Progress  -->
+      <ProgressBar
+          Grid.Row="1"
+          Background="{DynamicResource MaterialDesignDarkBackground}"
+          Foreground="Orange"
+          Maximum="1"
+          IsIndeterminate="{Binding IsProgressIndeterminate}"
+          Value="{Binding Progress, Mode=OneWay}" />
+    </Grid>
+    
+    
+  </dialogHost:DialogHost>
+
+</Window>

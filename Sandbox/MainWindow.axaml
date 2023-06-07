@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'
+        xmlns:vm="using:Sandbox.ViewModels"
+        xmlns:dialogHost="clr-namespace:DialogHostAvalonia"
+        x:DataType="vm:MainWindowViewModel"
+        x:Class="Sandbox.MainWindow">
+
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <dialogHost:DialogHost x:Name="DialogHost" CloseOnClickAway="True">
+
+    <StackPanel>
+
+      <Button
+          Content="Show Dialog"
+          Command="{Binding ShowDialog}"
+          IsDefault="True"/>
+
+      <!-- Somehow this ProgressBar is essential to reproduce -->
+      <ProgressBar />
+
+    </StackPanel>
+
+
+  </dialogHost:DialogHost>
+
+</Window>
