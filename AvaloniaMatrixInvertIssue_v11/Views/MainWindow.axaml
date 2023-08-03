@@ -25,9 +25,6 @@
           Command="{Binding ShowDialog}"
           IsDefault="True"/>
       
-      <!-- Somehow this ProgressBar is essential to reproduce -->  
-      <ProgressBar />
-      
     </StackPanel>
     
     

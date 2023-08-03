@@ -16,7 +16,7 @@ using Avalonia.VisualTree;
 using DialogHostAvalonia.Positioners;
 
 namespace DialogHostAvalonia {
-    public class DialogOverlayPopupHost : ContentControl, IPopupHost, IManagedPopupPositionerPopup, ICustomKeyboardNavigation {
+    public class DialogOverlayPopupHost : ContentControl, ICustomKeyboardNavigation {
         public static readonly DirectProperty<DialogOverlayPopupHost, bool> IsOpenProperty =
             AvaloniaProperty.RegisterDirect<DialogOverlayPopupHost, bool>(
                 nameof(IsOpen),
@@ -36,20 +36,15 @@ namespace DialogHostAvalonia {
                 o => o.PopupPositioner,
                 (o, v) => o.PopupPositioner = v);
 
-        private readonly OverlayLayer _overlayLayer;
+        private readonly Grid _root;
 
         private bool _disableOpeningAnimation;
         private bool _isOpen;
-        private Point _lastRequestedPosition;
-        private DialogPopupPositionerHost _popupPositionerHost;
         private IDialogPopupPositioner? _popupPositioner;
-        private PopupPositionerParameters _positionerParameters = new();
-        private bool _shown;
 
-        public DialogOverlayPopupHost(OverlayLayer overlayLayer)
+        public DialogOverlayPopupHost(Grid root)
         {
-            _overlayLayer = overlayLayer;
-            _popupPositionerHost = new DialogPopupPositionerHost(this, _popupPositioner);
+            this._root = root;
         }
 
         public bool IsOpen {
@@ -64,7 +59,7 @@ namespace DialogHostAvalonia {
         /// Controls <see cref="Show"/> and <see cref="Hide"/> calls. Used for closing animations
         /// </summary>
         /// <remarks>
-        /// Actually you should use <see cref="IsOpen"/> for opening and closing dialog 
+        /// Actually you should use <see cref="IsOpen"/> for opening and closing dialog
         /// </remarks>
         public bool IsActuallyOpen {
             get => GetValue(IsActuallyOpenProperty);
@@ -80,102 +75,54 @@ namespace DialogHostAvalonia {
             get => _popupPositioner;
             set {
                 SetAndRaise(PopupPositionerProperty, ref _popupPositioner, value);
-                _popupPositionerHost._dialogPopupPositioner = value;
                 UpdatePosition();
             }
         }
 
-        IReadOnlyList<ManagedPopupPositionerScreenInfo> IManagedPopupPositionerPopup.Screens
-        {
-            get
-            {
-                var rc = new Rect(default, _overlayLayer.AvailableSize);
-                return new[] {new ManagedPopupPositionerScreenInfo(rc, rc)};
-            }
-        }
-
-        Rect IManagedPopupPositionerPopup.ParentClientAreaScreenGeometry =>
-            new Rect(default, _overlayLayer.Bounds.Size);
-
-        // TODO: Allow manipulation of the popup size
-        void IManagedPopupPositionerPopup.MoveAndResize(Point devicePoint, Size virtualSize)
-        {
-            _lastRequestedPosition = devicePoint;
-            Dispatcher.UIThread.Post(() =>
-            {
-                Canvas.SetLeft(this, _lastRequestedPosition.X);
-                Canvas.SetTop(this, _lastRequestedPosition.Y);
-            }, DispatcherPriority.Layout);
-        }
-
-        double IManagedPopupPositionerPopup.Scaling => 1;
-
-        public void SetChild(IControl? control)
-        {
-            Content = control;
-        }
-
-        bool IPopupHost.Topmost {
-            get => false;
-            set { /* Not supported */ }
-        }
-
-        Transform? IPopupHost.Transform { get; set; }
-        public IVisual? HostedVisualTreeRoot => null;
-
-        public void Dispose() => Hide();
-
-
         public void Show()
         {
-            if (!_shown) {
-                _overlayLayer.Children.Add(this);
+            if (Parent == null) {
+                _root.Children.Add(this);
             }
-            _shown = true;
             // Set the minimum priority to allow overriding it everywhere
-            SetValue(IsActuallyOpenProperty, true, BindingPriority.Style);
+            ClearValue(IsActuallyOpenProperty);
             Focus();
             UpdatePosition();
         }
 
         public void Hide()
         {
-            _overlayLayer.Children.Remove(this);
-            _shown = false;
+            _root.Children.Remove(this);
         }
 
-        public void ConfigurePosition(IVisual target, PlacementMode placement, Point offset,
-                                      PopupAnchor anchor = PopupAnchor.None, PopupGravity gravity = PopupGravity.None,
-                                      PopupPositionerConstraintAdjustment constraintAdjustment = PopupPositionerConstraintAdjustment.All,
-                                      Rect? rect = null)
-        {
-            // This code handles only PlacementMode.AnchorAndGravity and other default values
-            // Suitable only for current implementation of DialogHost
-            _positionerParameters.AnchorRectangle = target.Bounds;
+        /// <inheritdoc />
+        protected override void ArrangeCore(Rect finalRect) {
+            var margin = Margin;
+        
+            var size = new Size(
+                Math.Max(0, finalRect.Width - margin.Left - margin.Right),
+                Math.Max(0, finalRect.Height - margin.Top - margin.Bottom));
             
-            UpdatePosition();
-        }
-
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            if (_positionerParameters.Size != finalSize)
-            {
-                _positionerParameters.Size = finalSize;
-                UpdatePosition();
-            }
-            return base.ArrangeOverride(finalSize);
+            var contentSize = new Size(
+                Math.Min(size.Width, DesiredSize.Width - margin.Left - margin.Right), 
+                Math.Min(size.Height, DesiredSize.Height - margin.Top - margin.Bottom));
+            var positioner = PopupPositioner ?? CenteredDialogPopupPositioner.Instance;
+            var bounds = positioner.Update(size, contentSize);
+            
+            ArrangeOverride(bounds.Size).Constrain(size);
+            Bounds = new Rect(bounds.X + margin.Left, bounds.Y + margin.Top, bounds.Width, bounds.Height);
         }
 
 
         private void UpdatePosition()
         {
             // Don't bother the positioner with layout system artifacts
-            if (_positionerParameters.Size.Width == 0 || _positionerParameters.Size.Height == 0)
-                return;
-            if (_shown)
-            {
-                _popupPositionerHost.Update(_positionerParameters);
-            }
+            // if (_positionerParameters.Size.Width == 0 || _positionerParameters.Size.Height == 0)
+                // return;
+            // if (Parent != null)
+            // {
+                // _popupPositioner.Update(_positionerParameters.);
+            // }
         }
 
         public (bool handled, IInputElement? next) GetNext(IInputElement element, NavigationDirection direction) {

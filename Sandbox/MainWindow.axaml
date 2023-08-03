@@ -21,7 +21,7 @@
           IsDefault="True"/>
 
       <!-- Somehow this ProgressBar is essential to reproduce -->
-      <ProgressBar />
+      <!--<ProgressBar />-->
 
     </StackPanel>
 

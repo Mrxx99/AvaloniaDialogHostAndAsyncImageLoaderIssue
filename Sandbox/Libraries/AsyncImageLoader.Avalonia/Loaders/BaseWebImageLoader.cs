@@ -44,7 +44,7 @@ namespace AsyncImageLoader.Loaders
         protected HttpClient HttpClient { get; }
 
         /// <inheritdoc />
-        public virtual Task<IBitmap?> ProvideImageAsync(string url)
+        public virtual Task<Bitmap?> ProvideImageAsync(string url)
         {
             return LoadAsync(url);
         }
@@ -60,9 +60,10 @@ namespace AsyncImageLoader.Loaders
         /// </summary>
         /// <param name="url">Target url</param>
         /// <returns>Bitmap</returns>
-        protected virtual async Task<IBitmap?> LoadAsync(string url)
+        protected virtual async Task<Bitmap?> LoadAsync(string url)
         {
-            var internalOrCachedBitmap = await LoadFromInternalAsync(url) ?? await LoadFromGlobalCache(url);
+            var internalOrCachedBitmap = await LoadFromLocalAsync(url) ??
+                                         await LoadFromInternalAsync(url) ?? await LoadFromGlobalCache(url);
             if (internalOrCachedBitmap != null) return internalOrCachedBitmap;
 
             try
@@ -79,6 +80,16 @@ namespace AsyncImageLoader.Loaders
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// the url maybe is local file url,so if file exists ,we got a Bitmap
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        private Task<Bitmap?> LoadFromLocalAsync(string url)
+        {
+            return Task.FromResult(File.Exists(url) ? new Bitmap(url) : null);
         }
 
         /// <summary>
@@ -102,8 +113,7 @@ namespace AsyncImageLoader.Loaders
                 if (uri is { IsAbsoluteUri: true, IsFile: true })
                     return Task.FromResult(new Bitmap(uri.LocalPath))!;
 
-                var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-                return Task.FromResult(new Bitmap(assets?.Open(uri) ?? Stream.Null))!;
+                return Task.FromResult(new Bitmap(AssetLoader.Open(uri)))!;
             }
             catch (Exception e)
             {
